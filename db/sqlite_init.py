@@ -1,4 +1,5 @@
 import sqlite3
+from urllib.parse import urlparse
 
 def create_database(db_path: str):
     conn = sqlite3.connect(db_path)
@@ -33,8 +34,17 @@ def insert_product_link(db_path: str, link: str):
     cursor = conn.cursor()
     
     try:
+        parsed = urlparse(link)
+        shop_path = parsed.scheme + "://" + parsed.netloc + parsed.path.split("/product/")[0]
+        cursor.execute("SELECT 1 FROM shop_links WHERE link = ?", (shop_path,))
+        if cursor.fetchone():
+            print(f"{shop_path} already exists in shop_links, skipping insert for {link}.")
+            conn.close()
+            return
+
         cursor.execute('INSERT INTO product_links (link) VALUES (?)', (link,))
         conn.commit()
+
     except sqlite3.IntegrityError:
         print(f"Link already exists: {link}")
     
